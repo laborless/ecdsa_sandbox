@@ -82,8 +82,8 @@ const EllipticCurveChart: React.FC<EllipticCurveChartProps> = ({
       const points: number[] = [];
       for (let y = 0; y < modulus; y++) {
         // Handle negative values properly in modular arithmetic
-        let ySquaredMod = ((ySquared % modulus) + modulus) % modulus;
-        let y2Mod = (((y * y) % modulus) + modulus) % modulus;
+        const ySquaredMod = ((ySquared % modulus) + modulus) % modulus;
+        const y2Mod = (((y * y) % modulus) + modulus) % modulus;
 
         if (y2Mod === ySquaredMod) {
           points.push(y);
@@ -468,7 +468,7 @@ const EllipticCurveChart: React.FC<EllipticCurveChartProps> = ({
               fill={modulus ? colors.point : colors.realCurve}
               opacity={0.9}
               strokeWidth={0.5}
-              stroke={colors.stroke}
+              stroke={colors.axes}
               listening={true}
               onMouseEnter={() => setHoveredPoint(point)}
               onMouseLeave={() => setHoveredPoint(null)}

@@ -5,9 +5,9 @@ import { Stage, Layer, Circle, Line, Text } from "react-konva";
 
 type ECPoint = { x: number; y: number };
 const a = -1;
-const b = 1;
+// const b = 1;
 const p = 17;
-const steps = 10;
+// const steps = 10;
 
 
 
@@ -61,7 +61,7 @@ const ECDCurve: React.FC = () => {
       setStep((prev) => (prev + 1 <= path.length - 1 ? prev + 1 : prev));
     }, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [path.length]);
 
   return (
     <Stage width={600} height={600}>
