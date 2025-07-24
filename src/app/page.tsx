@@ -24,7 +24,15 @@ export default function Home() {
   }, []);
 
   // Predefined curves
-  const curvePresets = {
+  type CurvePresetKey = "secp256r1" | "secp256k1" | "example" | "small" | "custom";
+  type CurvePreset = {
+    a: number;
+    b: number;
+    p: number;
+    name: string;
+    description: string;
+  };
+  const curvePresets: Record<CurvePresetKey, CurvePreset> = {
     secp256r1: {
       a: -3,
       b: 41,
@@ -62,7 +70,7 @@ export default function Home() {
     },
   };
 
-  const [selectedCurve, setSelectedCurve] = useState("secp256r1");
+  const [selectedCurve, setSelectedCurve] = useState<CurvePresetKey>("secp256r1");
   // secp256r1 parameters (truncated to smaller values for visualization)
   const [curveParams, setCurveParams] = useState({
     a: curvePresets.secp256r1.a,
@@ -133,25 +141,17 @@ export default function Home() {
           <label htmlFor="hexInput" className="font-semibold mb-1">
             Elliptic Curve (Weierstrass equation)
           </label>
-          <span className="font-mono text-lg">y² = x³ + ax + b</span>
-          <ul className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-            <li className="tracking-[-.01em]">Field F</li>
+          <span className="font-mono text-lg">
+            y²= x³+ax+b / y²≡ x³+ax+b(mod N)
+          </span>
+          <ul className="font-mono list-inside list-disc text-sm/6 text-center sm:text-left">
+            <li className="tracking-[-.01em]">Field F=ℝ / F=ℤₚ(p: prime number &gt; 2)</li>
             <li className="tracking-[-.01em]">Δ = -16(4a² + 27b²) ≠ 0</li>
             <li className="tracking-[-.01em]">a, b ∈ F</li>
             {/* <li className="tracking-[-.01em]">a, b ∈ ℝ or ℤ/Nℤ</li> */}
             <li className="tracking-[-.01em]">O: Point at infinity</li>
-          </ul>
-          <span className="font-mono text-gray-500">TODO:</span>
-          <span className="font-mono text-lg">y²≡x³+ax+b(mod N)</span>
-          <ul className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
             <li className="tracking-[-.01em]">
-              F = ℤₚ (p: prime number &gt; 2)
-            </li>
-            <li className="tracking-[-.01em]">Δ = -16(4a² + 27b²) ≠ 0</li>
-            <li className="tracking-[-.01em]">y² = x³ + ax + b & a, b ∈ F</li>
-            <li className="tracking-[-.01em]">O: Point at infinity</li>
-            <li className="tracking-[-.01em]">
-              E(ℤₚ) = &#123;(x,y) ∈ ℤₚ × ℤₚ : y² = x³ + ax + b&#125; ∪
+              E(F) = &#123;(x,y) ∈ F × F : y² = x³ + ax + b&#125; ∪
               &#123;O&#125;
             </li>
           </ul>
@@ -188,7 +188,7 @@ export default function Home() {
             </div>
             <div className="flex flex-col">
               <h3 className="text-center font-semibold mb-2 text-lg">
-                Modular Curve Zₚ ({curvePresets[selectedCurve].name})
+                Zₚ Modular Curve ({curvePresets[selectedCurve].name})
               </h3>
               <p
                 className={`text-xs text-center ${isDarkMode ? "text-gray-400" : "text-gray-600"} mb-2`}
@@ -230,7 +230,7 @@ export default function Home() {
                 className="border rounded px-3 py-2 font-mono"
                 value={selectedCurve}
                 onChange={(e) => {
-                  const selected = e.target.value;
+                  const selected = e.target.value as CurvePresetKey;
                   setSelectedCurve(selected);
                   if (selected !== "custom") {
                     setCurveParams({
@@ -243,7 +243,7 @@ export default function Home() {
               >
                 {Object.keys(curvePresets).map((curve) => (
                   <option key={curve} value={curve}>
-                    {curvePresets[curve].name}
+                    {curvePresets[curve as CurvePresetKey].name}
                   </option>
                 ))}
               </select>
