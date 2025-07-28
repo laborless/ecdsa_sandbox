@@ -250,9 +250,24 @@ export default function Home() {
                       a: curvePresets[selected].a,
                       b: curvePresets[selected].b,
                     });
-                    setModulus(curvePresets[selected].p);
-                    setGeneratorX(curvePresets[selected].generator?.x || 0);
-                    setGeneratorY(0);
+                    const newModulus = curvePresets[selected].p;
+                    const newX = curvePresets[selected].generator?.x || 0;
+                    setModulus(newModulus);
+                    setGeneratorX(newX);
+                    
+                    // Calculate initial Y value for the preset
+                    const x = ((newX % newModulus) + newModulus) % newModulus;
+                    const x3 = (x * x * x) % newModulus;
+                    const ax = (curvePresets[selected].a * x) % newModulus;
+                    const ySquared = ((x3 + ax + curvePresets[selected].b) % newModulus + newModulus) % newModulus;
+                    const yValues: number[] = [];
+                    for (let y = 0; y < newModulus; y++) {
+                      if ((y * y % newModulus) === ySquared) {
+                        yValues.push(y);
+                      }
+                    }
+                    // Set to smaller Y value by default if available
+                    setGeneratorY(yValues.length > 0 ? Math.min(...yValues) : null);
                   }
                 }}
               >
@@ -337,15 +352,50 @@ export default function Home() {
                   <div className={`${isDarkMode ? "text-green-300" : "text-green-600"}`}>
                     Mod Gy: <span className="font-bold">{(() => {
                       if (!modulus) return "N/A";
-                      const x = generatorX;
-                      const ySquared = ((x * x * x % modulus + (curveParams.a * x % modulus) + curveParams.b) % modulus + modulus) % modulus;
-                      const yValues = [];
+                      // Calculate y² ≡ x³ + ax + b (mod p)
+                      const x = ((generatorX % modulus) + modulus) % modulus;
+                      const x3 = (x * x * x) % modulus;
+                      const ax = (curveParams.a * x) % modulus;
+                      const ySquared = ((x3 + ax + curveParams.b) % modulus + modulus) % modulus;
+                      // Find y values where y² ≡ ySquared (mod p)
+                      const yValues: number[] = [];
                       for (let y = 0; y < modulus; y++) {
                         if ((y * y % modulus) === ySquared) {
                           yValues.push(y);
                         }
                       }
-                      return yValues.length ? yValues.join(" or ") : "No value";
+                      if (!yValues.length) return "No value";
+                      yValues.sort((a, b) => a - b); // Sort in ascending order
+                      return (
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              id="smallerY"
+                              name="yValue"
+                              value={yValues[0]}
+                              checked={generatorY === yValues[0]}
+                              onChange={() => setGeneratorY(yValues[0])}
+                            />
+                            <label htmlFor="smallerY" className="text-sm">
+                              {yValues[0]}
+                            </label>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              id="largerY"
+                              name="yValue"
+                              value={yValues[1]}
+                              checked={generatorY === yValues[1]}
+                              onChange={() => setGeneratorY(yValues[1])}
+                            />
+                            <label htmlFor="largerY" className="text-sm">
+                              {yValues[1]}
+                            </label>
+                          </div>
+                        </div>
+                      );
                     })()}</span>
                   </div>
                 </div>
