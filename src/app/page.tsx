@@ -31,7 +31,7 @@ export default function Home() {
     p: number;
     name: string;
     description: string;
-    generator?: { x: number; y: number };
+    generator?: { x: number };
   };
   const curvePresets: Record<CurvePresetKey, CurvePreset> = {
     secp256r1: {
@@ -40,7 +40,7 @@ export default function Home() {
       p: 47,
       name: "secp256r1 (simplified)",
       description: "NIST P-256 curve used in TLS/SSL",
-      generator: { x: 2, y: 3 }, // Example generator point
+      generator: { x: 2 }, // Generator point x-coordinate
     },
     secp256k1: {
       a: 0,
@@ -48,7 +48,7 @@ export default function Home() {
       p: 43,
       name: "secp256k1 (simplified)",
       description: "Bitcoin and Ethereum blockchain curve",
-      generator: { x: 3, y: 5 }, // Example generator point
+      generator: { x: 3 }, // Generator point x-coordinate
     },
     example: {
       a: -1,
@@ -56,7 +56,7 @@ export default function Home() {
       p: 17,
       name: "Example Curve",
       description: "Simple curve for educational purposes",
-      generator: { x: 1, y: 2 }, // Example generator point
+      generator: { x: 1 }, // Generator point x-coordinate
     },
     small: {
       a: 2,
@@ -64,7 +64,7 @@ export default function Home() {
       p: 11,
       name: "Small Field (p=11)",
       description: "Very small prime field for visualizing all points",
-      generator: { x: 2, y: 4 }, // Example generator point
+      generator: { x: 2 }, // Generator point x-coordinate
     },
     custom: {
       a: 0,
@@ -83,7 +83,7 @@ export default function Home() {
   });
   const [modulus, setModulus] = useState(curvePresets.secp256r1.p);
   const [generatorX, setGeneratorX] = useState<number>(curvePresets.secp256r1.generator?.x || 0);
-  const [generatorY, setGeneratorY] = useState<number | null>(curvePresets.secp256r1.generator?.y || null);
+  const [generatorY, setGeneratorY] = useState<number | null>(0);
   const [isGeneratorValid, setIsGeneratorValid] = useState<boolean>(true);
 
   function generateRandomHex(length: number) {
@@ -191,7 +191,7 @@ export default function Home() {
                   yAxisLabel="Y"
                   externalTitle={true}
                   isDarkMode={isDarkMode}
-                  generatorPoint={generatorY !== null ? { x: generatorX, y: generatorY } : undefined}
+                  generatorPoint={generatorY !== null ? { x: generatorX } : undefined}
                   onPointValidation={setIsGeneratorValid}
                 />
               </div>
@@ -220,7 +220,7 @@ export default function Home() {
                   showPoints={true}
                   responsive={true}
                   showCoordinates={true}
-                  generatorPoint={generatorY !== null ? { x: generatorX, y: generatorY } : undefined}
+                  generatorPoint={generatorY !== null ? { x: generatorX } : undefined}
                   onPointValidation={setIsGeneratorValid}
                   xAxisLabel="X"
                   yAxisLabel="Y"
@@ -251,7 +251,7 @@ export default function Home() {
                     });
                     setModulus(curvePresets[selected].p);
                     setGeneratorX(curvePresets[selected].generator?.x || 0);
-                    setGeneratorY(curvePresets[selected].generator?.y || null);
+                    setGeneratorY(0);
                   }
                 }}
               >
@@ -309,7 +309,7 @@ export default function Home() {
               />
             </div>
             <div className="flex items-center">
-              <label className="font-mono">Gx:</label>
+              <label className="font-mono">Generator x:</label>
               <input
                 type="number"
                 className={`border rounded ml-2 px-3 py-2 w-20 font-mono ${
@@ -319,22 +319,7 @@ export default function Home() {
                 onChange={(e) => {
                   const x = parseInt(e.target.value) || 0;
                   setGeneratorX(x);
-                  setSelectedCurve("custom");
-                }}
-              />
-            </div>
-            <div className="flex items-center">
-              <label className="font-mono">Gy:</label>
-              <input
-                type="number"
-                className={`border rounded ml-2 px-3 py-2 w-20 font-mono ${
-                  isDarkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-white"
-                } ${!isGeneratorValid ? "border-red-500" : ""}`}
-                value={generatorY === null ? "" : generatorY}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  const y = value === "" ? null : (parseInt(value) || 0);
-                  setGeneratorY(y);
+                  setGeneratorY(0); // Just use 0 as a placeholder since y is calculated automatically
                   setSelectedCurve("custom");
                 }}
               />
