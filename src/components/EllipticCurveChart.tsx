@@ -18,7 +18,7 @@ interface EllipticCurveChartProps {
   yAxisLabel?: string; // Label for y-axis
   externalTitle?: boolean; // Whether the title is displayed externally
   isDarkMode?: boolean; // Whether to use dark mode colors
-  generatorPoint?: { x: number; y: number }; // Generator point G
+  generatorPoint?: { x: number }; // Generator point G (only x-coordinate)
   onPointValidation?: (isValid: boolean) => void; // Callback when point validity changes
 }
 
@@ -106,6 +106,20 @@ const EllipticCurveChart: React.FC<EllipticCurveChartProps> = ({
     }
   }, [getYSquared, modulus]);
 
+  // Calculate the y-coordinate for the generator point
+  const calculateGeneratorPointY = React.useCallback((x: number): number | null => {
+    const yValues = getY(x);
+    if (yValues.length === 0) return null;
+    
+    // For modular curves, choose the smallest y value
+    if (modulus) {
+      return Math.min(...yValues);
+    }
+    
+    // For real curves, choose the positive y value
+    return yValues[0] >= 0 ? yValues[0] : yValues[1];
+  }, [getY, modulus]);
+
   // Calculate verification values for a point (to confirm it's on the curve)
   const isPointOnCurve = React.useCallback((point: { x: number; y: number }): boolean => {
     if (modulus) {
@@ -131,10 +145,15 @@ const EllipticCurveChart: React.FC<EllipticCurveChartProps> = ({
 
   // Validate generator point when it changes
   React.useEffect(() => {
-    if (generatorPoint && onPointValidation) {
-      onPointValidation(isPointOnCurve(generatorPoint));
+    if (generatorPoint) {
+      const y = calculateGeneratorPointY(generatorPoint.x);
+      if (y !== null && onPointValidation) {
+        onPointValidation(isPointOnCurve({ x: generatorPoint.x, y }));
+      } else if (onPointValidation) {
+        onPointValidation(false);
+      }
     }
-  }, [generatorPoint, isPointOnCurve, onPointValidation]);
+  }, [generatorPoint, isPointOnCurve, onPointValidation, calculateGeneratorPointY]);
 
   // Generate all points on the curve
   const generatePoints = (): { x: number; y: number }[] => {
@@ -479,33 +498,39 @@ const EllipticCurveChart: React.FC<EllipticCurveChartProps> = ({
         )}
 
         {/* Generator Point */}
-        {generatorPoint && (
-          <>
-            <Circle
-              x={offsetX + generatorPoint.x * scale}
-              y={offsetY - generatorPoint.y * scale}
-              radius={modulus && modulus > 30 ? 4 : responsive ? 4.5 : 5}
-              fill={colors.generator}
-              opacity={1}
-              strokeWidth={1.5}
-              stroke={isDarkMode ? "#000" : "#fff"}
-              shadowColor={colors.generator}
-              shadowBlur={10}
-              shadowOpacity={0.5}
-              listening={true}
-              onMouseEnter={() => setHoveredPoint(generatorPoint)}
-              onMouseLeave={() => setHoveredPoint(null)}
-            />
-            <Text
-              text="G"
-              x={offsetX + generatorPoint.x * scale + 8}
-              y={offsetY - generatorPoint.y * scale - 8}
-              fontSize={12}
-              fill={colors.generator}
-              fontStyle="bold"
-            />
-          </>
-        )}
+        {generatorPoint && (() => {
+          const y = calculateGeneratorPointY(generatorPoint.x);
+          if (y === null) return null;
+          
+          const point = { x: generatorPoint.x, y };
+          return (
+            <>
+              <Circle
+                x={offsetX + point.x * scale}
+                y={offsetY - point.y * scale}
+                radius={modulus && modulus > 30 ? 4 : responsive ? 4.5 : 5}
+                fill={colors.generator}
+                opacity={1}
+                strokeWidth={1.5}
+                stroke={isDarkMode ? "#000" : "#fff"}
+                shadowColor={colors.generator}
+                shadowBlur={10}
+                shadowOpacity={0.5}
+                listening={true}
+                onMouseEnter={() => setHoveredPoint(point)}
+                onMouseLeave={() => setHoveredPoint(null)}
+              />
+              <Text
+                text="G"
+                x={offsetX + point.x * scale + 8}
+                y={offsetY - point.y * scale - 8}
+                fontSize={12}
+                fill={colors.generator}
+                fontStyle="bold"
+              />
+            </>
+          );
+        })()}
       </Layer>
     </Stage>
   );
