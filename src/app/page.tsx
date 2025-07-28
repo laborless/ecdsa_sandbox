@@ -84,7 +84,8 @@ export default function Home() {
   const [modulus, setModulus] = useState(curvePresets.secp256r1.p);
   const [generatorX, setGeneratorX] = useState<number>(curvePresets.secp256r1.generator?.x || 0);
   const [generatorY, setGeneratorY] = useState<number | null>(0);
-  const [isGeneratorValid, setIsGeneratorValid] = useState<boolean>(true);
+  const [isGeneratorValidReal, setIsGeneratorValidReal] = useState<boolean>(true);
+  const [isGeneratorValidMod, setIsGeneratorValidMod] = useState<boolean>(true);
 
   function generateRandomHex(length: number) {
     const bytes = new Uint8Array(length);
@@ -192,7 +193,7 @@ export default function Home() {
                   externalTitle={true}
                   isDarkMode={isDarkMode}
                   generatorPoint={generatorY !== null ? { x: generatorX } : undefined}
-                  onPointValidation={setIsGeneratorValid}
+                  onPointValidation={setIsGeneratorValidReal}
                 />
               </div>
             </div>
@@ -221,7 +222,7 @@ export default function Home() {
                   responsive={true}
                   showCoordinates={true}
                   generatorPoint={generatorY !== null ? { x: generatorX } : undefined}
-                  onPointValidation={setIsGeneratorValid}
+                  onPointValidation={setIsGeneratorValidMod}
                   xAxisLabel="X"
                   yAxisLabel="Y"
                   externalTitle={true}
@@ -314,7 +315,7 @@ export default function Home() {
                 type="number"
                 className={`border rounded ml-2 px-3 py-2 w-20 font-mono ${
                   isDarkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-white"
-                } ${!isGeneratorValid ? "border-red-500" : ""}`}
+                } ${!isGeneratorValidReal || !isGeneratorValidMod ? "border-red-500" : ""}`}
                 value={generatorX}
                 onChange={(e) => {
                   const x = parseInt(e.target.value) || 0;
@@ -323,10 +324,42 @@ export default function Home() {
                   setSelectedCurve("custom");
                 }}
               />
+              {(isGeneratorValidReal || isGeneratorValidMod) && (
+                <div className="flex flex-col ml-4 text-sm font-mono">
+                  <div className={`${isDarkMode ? "text-blue-300" : "text-blue-600"}`}>
+                    Real Gy: <span className="font-bold">{(() => {
+                      const ySquared = Math.pow(generatorX, 3) + curveParams.a * generatorX + curveParams.b;
+                      if (ySquared < 0) return "No real value";
+                      const y = Math.sqrt(ySquared);
+                      return `±${y.toFixed(3)}`;
+                    })()}</span>
+                  </div>
+                  <div className={`${isDarkMode ? "text-green-300" : "text-green-600"}`}>
+                    Mod Gy: <span className="font-bold">{(() => {
+                      if (!modulus) return "N/A";
+                      const x = generatorX;
+                      const ySquared = ((x * x * x % modulus + (curveParams.a * x % modulus) + curveParams.b) % modulus + modulus) % modulus;
+                      const yValues = [];
+                      for (let y = 0; y < modulus; y++) {
+                        if ((y * y % modulus) === ySquared) {
+                          yValues.push(y);
+                        }
+                      }
+                      return yValues.length ? yValues.join(" or ") : "No value";
+                    })()}</span>
+                  </div>
+                </div>
+              )}
             </div>
-            {!isGeneratorValid && (
+            {(!isGeneratorValidReal || !isGeneratorValidMod) && (
               <div className="text-red-500 text-sm ml-2 mt-2">
-                Point G is not on the curve
+                {!isGeneratorValidReal && !isGeneratorValidMod ? (
+                  "Point G is not on either curve"
+                ) : !isGeneratorValidReal ? (
+                  "Point G is not on the real curve"
+                ) : (
+                  "Point G is not on the modular curve"
+                )}
               </div>
             )}
           </div>
