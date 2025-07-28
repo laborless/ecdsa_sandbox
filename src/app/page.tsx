@@ -367,7 +367,7 @@ export default function Home() {
                       if (!yValues.length) return "No value";
                       yValues.sort((a, b) => a - b); // Sort in ascending order
                       return (
-                        <div className="flex items-center gap-4">
+                        <div className="flex flex-col gap-1">
                           <div className="flex items-center gap-2">
                             <input
                               type="radio"
@@ -378,7 +378,7 @@ export default function Home() {
                               onChange={() => setGeneratorY(yValues[0])}
                             />
                             <label htmlFor="smallerY" className="text-sm">
-                              {yValues[0]}
+                              {yValues[0]} (smaller)
                             </label>
                           </div>
                           <div className="flex items-center gap-2">
@@ -391,7 +391,7 @@ export default function Home() {
                               onChange={() => setGeneratorY(yValues[1])}
                             />
                             <label htmlFor="largerY" className="text-sm">
-                              {yValues[1]}
+                              {yValues[1]} (larger)
                             </label>
                           </div>
                         </div>
