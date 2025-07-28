@@ -18,6 +18,8 @@ interface EllipticCurveChartProps {
   yAxisLabel?: string; // Label for y-axis
   externalTitle?: boolean; // Whether the title is displayed externally
   isDarkMode?: boolean; // Whether to use dark mode colors
+  generatorPoint?: { x: number; y: number }; // Generator point G
+  onPointValidation?: (isValid: boolean) => void; // Callback when point validity changes
 }
 
 const EllipticCurveChart: React.FC<EllipticCurveChartProps> = ({
@@ -35,6 +37,8 @@ const EllipticCurveChart: React.FC<EllipticCurveChartProps> = ({
   yAxisLabel = "y",
   externalTitle = false,
   isDarkMode = false,
+  generatorPoint,
+  onPointValidation,
 }) => {
   const [hoveredPoint, setHoveredPoint] = React.useState<{
     x: number;
@@ -65,15 +69,20 @@ const EllipticCurveChart: React.FC<EllipticCurveChartProps> = ({
     coordinateLines: isDarkMode ? "#4faeba" : "#2980b9",
     valid: isDarkMode ? "#43be65" : "#27ae60",
     invalid: isDarkMode ? "#fa5252" : "#c0392b",
+    generator: isDarkMode ? "#ffd43b" : "#f39c12", // Yellow color for generator point
   };
 
   // Function to calculate y²
-  const getYSquared = (x: number): number => {
+  const getYSquared = React.useCallback((x: number): number => {
+    if (modulus) {
+      const result = ((x * x * x % modulus) + ((a * x) % modulus) + b) % modulus;
+      return (result + modulus) % modulus;
+    }
     return x * x * x + a * x + b;
-  };
+  }, [a, b, modulus]);
 
   // Function to get y from x for elliptic curve equation
-  const getY = (x: number): number[] => {
+  const getY = React.useCallback((x: number): number[] => {
     const ySquared = getYSquared(x);
     if (ySquared < 0 && !modulus) return [];
 
@@ -95,7 +104,37 @@ const EllipticCurveChart: React.FC<EllipticCurveChartProps> = ({
       const y = Math.sqrt(ySquared);
       return [y, -y]; // Both positive and negative y values
     }
-  };
+  }, [getYSquared, modulus]);
+
+  // Calculate verification values for a point (to confirm it's on the curve)
+  const isPointOnCurve = React.useCallback((point: { x: number; y: number }): boolean => {
+    if (modulus) {
+      // For modular arithmetic
+      // Calculate y²
+      const ySquared = ((point.y * point.y % modulus) + modulus) % modulus;
+
+      // Calculate x³ + ax + b
+      const x3 = (((point.x * point.x % modulus) * point.x) % modulus + modulus) % modulus;
+      const ax = ((a * point.x % modulus) + modulus) % modulus;
+      const rightSide = ((x3 + ax + b) % modulus + modulus) % modulus;
+
+      return ySquared === rightSide;
+    } else {
+      // For real numbers, use small epsilon to account for floating point precision
+      const epsilon = 1e-10;
+      const ySquared = point.y * point.y;
+      const rightSide = getYSquared(point.x);
+      
+      return Math.abs(ySquared - rightSide) < epsilon;
+    }
+  }, [a, b, modulus, getYSquared]);
+
+  // Validate generator point when it changes
+  React.useEffect(() => {
+    if (generatorPoint && onPointValidation) {
+      onPointValidation(isPointOnCurve(generatorPoint));
+    }
+  }, [generatorPoint, isPointOnCurve, onPointValidation]);
 
   // Generate all points on the curve
   const generatePoints = (): { x: number; y: number }[] => {
@@ -104,13 +143,9 @@ const EllipticCurveChart: React.FC<EllipticCurveChartProps> = ({
     if (modulus) {
       // For modular arithmetic
       for (let x = 0; x < modulus; x++) {
-        try {
-          const yValues = getY(x);
-          for (const y of yValues) {
-            points.push({ x, y });
-          }
-        } catch (e) {
-          // Skip points where we can't compute y
+        const yValues = getY(x);
+        for (const y of yValues) {
+          points.push({ x, y });
         }
       }
     } else {
@@ -119,13 +154,9 @@ const EllipticCurveChart: React.FC<EllipticCurveChartProps> = ({
       const range = 10; // Plot x from -range to +range
 
       for (let x = -range; x <= range; x += stepSize) {
-        try {
-          const yValues = getY(x);
-          for (const y of yValues) {
-            points.push({ x, y });
-          }
-        } catch (e) {
-          // Skip points where we can't compute y
+        const yValues = getY(x);
+        for (const y of yValues) {
+          points.push({ x, y });
         }
       }
     }
@@ -214,55 +245,25 @@ const EllipticCurveChart: React.FC<EllipticCurveChartProps> = ({
     const range = 10;
 
     for (let x = -range; x <= range; x += stepSize) {
-      try {
-        const yValues = getY(x);
-        if (yValues.length > 0) {
-          const xPos = offsetX + x * scale;
-          const yPos1 = offsetY - yValues[0] * scale;
+      const yValues = getY(x);
+      if (yValues.length > 0) {
+        const xPos = offsetX + x * scale;
+        const yPos1 = offsetY - yValues[0] * scale;
 
-          if (points.length === 0) {
+        if (points.length === 0) {
+          points.push(xPos, yPos1);
+        } else {
+          // Check for discontinuities
+          const lastX = points[points.length - 2];
+          const lastY = points[points.length - 1];
+          const distance = Math.sqrt(
+            Math.pow(xPos - lastX, 2) + Math.pow(yPos1 - lastY, 2),
+          );
+
+          if (distance < scale * 1) {
             points.push(xPos, yPos1);
-          } else {
-            // Check for discontinuities
-            const lastX = points[points.length - 2];
-            const lastY = points[points.length - 1];
-            const distance = Math.sqrt(
-              Math.pow(xPos - lastX, 2) + Math.pow(yPos1 - lastY, 2),
-            );
-
-            if (distance < scale * 1) {
-              points.push(xPos, yPos1);
-            } else {
-              // Start a new line for discontinuities
-              return (
-                <>
-                  <Line
-                    points={points}
-                    stroke="blue"
-                    strokeWidth={1.5}
-                    tension={0.5}
-                    bezier
-                  />
-                  <Line
-                    points={points.map((p, i) => {
-                      if (i % 2 === 1) {
-                        // Flip y coordinates for the second curve
-                        return 2 * offsetY - p;
-                      }
-                      return p;
-                    })}
-                    stroke="blue"
-                    strokeWidth={1.5}
-                    tension={0.5}
-                    bezier
-                  />
-                </>
-              );
-            }
           }
         }
-      } catch (e) {
-        // Skip points where we can't compute y
       }
     }
 
@@ -276,7 +277,7 @@ const EllipticCurveChart: React.FC<EllipticCurveChartProps> = ({
           bezier
         />
         <Line
-          points={points.map((p, i) => {
+          points={points.map((p: number, i: number) => {
             if (i % 2 === 1) {
               // Flip y coordinates for the second curve
               return 2 * offsetY - p;
@@ -317,22 +318,7 @@ const EllipticCurveChart: React.FC<EllipticCurveChartProps> = ({
     );
   };
 
-  // Calculate verification values for a point (to confirm it's on the curve)
-  const calculateVerification = (point: { x: number; y: number }) => {
-    // Calculate y²
-    let ySquared = point.y * point.y;
-    if (modulus) {
-      ySquared = ((ySquared % modulus) + modulus) % modulus;
-    }
 
-    // Calculate x³ + ax + b
-    let rightSide = point.x * point.x * point.x + a * point.x + b;
-    if (modulus) {
-      rightSide = ((rightSide % modulus) + modulus) % modulus;
-    }
-
-    return { ySquared, rightSide };
-  };
 
   const points = generatePoints();
 
@@ -490,6 +476,35 @@ const EllipticCurveChart: React.FC<EllipticCurveChartProps> = ({
             }
             cornerRadius={3}
           />
+        )}
+
+        {/* Generator Point */}
+        {generatorPoint && (
+          <>
+            <Circle
+              x={offsetX + generatorPoint.x * scale}
+              y={offsetY - generatorPoint.y * scale}
+              radius={modulus && modulus > 30 ? 4 : responsive ? 4.5 : 5}
+              fill={colors.generator}
+              opacity={1}
+              strokeWidth={1.5}
+              stroke={isDarkMode ? "#000" : "#fff"}
+              shadowColor={colors.generator}
+              shadowBlur={10}
+              shadowOpacity={0.5}
+              listening={true}
+              onMouseEnter={() => setHoveredPoint(generatorPoint)}
+              onMouseLeave={() => setHoveredPoint(null)}
+            />
+            <Text
+              text="G"
+              x={offsetX + generatorPoint.x * scale + 8}
+              y={offsetY - generatorPoint.y * scale - 8}
+              fontSize={12}
+              fill={colors.generator}
+              fontStyle="bold"
+            />
+          </>
         )}
       </Layer>
     </Stage>

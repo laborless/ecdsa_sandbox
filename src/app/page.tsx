@@ -31,6 +31,7 @@ export default function Home() {
     p: number;
     name: string;
     description: string;
+    generator?: { x: number; y: number };
   };
   const curvePresets: Record<CurvePresetKey, CurvePreset> = {
     secp256r1: {
@@ -39,6 +40,7 @@ export default function Home() {
       p: 47,
       name: "secp256r1 (simplified)",
       description: "NIST P-256 curve used in TLS/SSL",
+      generator: { x: 2, y: 3 }, // Example generator point
     },
     secp256k1: {
       a: 0,
@@ -46,6 +48,7 @@ export default function Home() {
       p: 43,
       name: "secp256k1 (simplified)",
       description: "Bitcoin and Ethereum blockchain curve",
+      generator: { x: 3, y: 5 }, // Example generator point
     },
     example: {
       a: -1,
@@ -53,6 +56,7 @@ export default function Home() {
       p: 17,
       name: "Example Curve",
       description: "Simple curve for educational purposes",
+      generator: { x: 1, y: 2 }, // Example generator point
     },
     small: {
       a: 2,
@@ -60,6 +64,7 @@ export default function Home() {
       p: 11,
       name: "Small Field (p=11)",
       description: "Very small prime field for visualizing all points",
+      generator: { x: 2, y: 4 }, // Example generator point
     },
     custom: {
       a: 0,
@@ -77,6 +82,9 @@ export default function Home() {
     b: curvePresets.secp256r1.b,
   });
   const [modulus, setModulus] = useState(curvePresets.secp256r1.p);
+  const [generatorX, setGeneratorX] = useState<number>(curvePresets.secp256r1.generator?.x || 0);
+  const [generatorY, setGeneratorY] = useState<number | null>(curvePresets.secp256r1.generator?.y || null);
+  const [isGeneratorValid, setIsGeneratorValid] = useState<boolean>(true);
 
   function generateRandomHex(length: number) {
     const bytes = new Uint8Array(length);
@@ -183,6 +191,8 @@ export default function Home() {
                   yAxisLabel="Y"
                   externalTitle={true}
                   isDarkMode={isDarkMode}
+                  generatorPoint={generatorY !== null ? { x: generatorX, y: generatorY } : undefined}
+                  onPointValidation={setIsGeneratorValid}
                 />
               </div>
             </div>
@@ -210,6 +220,8 @@ export default function Home() {
                   showPoints={true}
                   responsive={true}
                   showCoordinates={true}
+                  generatorPoint={generatorY !== null ? { x: generatorX, y: generatorY } : undefined}
+                  onPointValidation={setIsGeneratorValid}
                   xAxisLabel="X"
                   yAxisLabel="Y"
                   externalTitle={true}
@@ -238,6 +250,8 @@ export default function Home() {
                       b: curvePresets[selected].b,
                     });
                     setModulus(curvePresets[selected].p);
+                    setGeneratorX(curvePresets[selected].generator?.x || 0);
+                    setGeneratorY(curvePresets[selected].generator?.y || null);
                   }
                 }}
               >
@@ -294,6 +308,42 @@ export default function Home() {
                 }}
               />
             </div>
+            <div className="flex items-center">
+              <label className="font-mono">Gx:</label>
+              <input
+                type="number"
+                className={`border rounded ml-2 px-3 py-2 w-20 font-mono ${
+                  isDarkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-white"
+                } ${!isGeneratorValid ? "border-red-500" : ""}`}
+                value={generatorX}
+                onChange={(e) => {
+                  const x = parseInt(e.target.value) || 0;
+                  setGeneratorX(x);
+                  setSelectedCurve("custom");
+                }}
+              />
+            </div>
+            <div className="flex items-center">
+              <label className="font-mono">Gy:</label>
+              <input
+                type="number"
+                className={`border rounded ml-2 px-3 py-2 w-20 font-mono ${
+                  isDarkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-white"
+                } ${!isGeneratorValid ? "border-red-500" : ""}`}
+                value={generatorY === null ? "" : generatorY}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  const y = value === "" ? null : (parseInt(value) || 0);
+                  setGeneratorY(y);
+                  setSelectedCurve("custom");
+                }}
+              />
+            </div>
+            {!isGeneratorValid && (
+              <div className="text-red-500 text-sm ml-2 mt-2">
+                Point G is not on the curve
+              </div>
+            )}
           </div>
           <div
             className={`mt-2 p-3 ${isDarkMode ? "bg-gray-700" : "bg-gray-100"} rounded text-xs`}
