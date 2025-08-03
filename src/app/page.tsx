@@ -325,7 +325,7 @@ export default function Home() {
               />
             </div>
             <div className="flex items-center">
-              <label className="font-mono">Generator x:</label>
+              <label className="font-mono">Gx:</label>
               <input
                 type="number"
                 className={`border rounded ml-2 px-3 py-2 w-20 font-mono ${
@@ -367,7 +367,7 @@ export default function Home() {
                       if (!yValues.length) return "No value";
                       yValues.sort((a, b) => a - b); // Sort in ascending order
                       return (
-                        <div className="flex flex-col gap-1">
+                        <div className="flex gap-2 inline-flex">
                           <div className="flex items-center gap-2">
                             <input
                               type="radio"
@@ -401,17 +401,6 @@ export default function Home() {
                 </div>
               )}
             </div>
-            {(!isGeneratorValidReal || !isGeneratorValidMod) && (
-              <div className="text-red-500 text-sm ml-2 mt-2">
-                {!isGeneratorValidReal && !isGeneratorValidMod ? (
-                  "Point G is not on either curve"
-                ) : !isGeneratorValidReal ? (
-                  "Point G is not on the real curve"
-                ) : (
-                  "Point G is not on the modular curve"
-                )}
-              </div>
-            )}
           </div>
           <div
             className={`mt-2 p-3 ${isDarkMode ? "bg-gray-700" : "bg-gray-100"} rounded text-xs`}
@@ -454,6 +443,17 @@ export default function Home() {
                   0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F
                 </p>
               </>
+            )}
+            {(!isGeneratorValidReal || !isGeneratorValidMod) && (
+              <p className="text-red-500 mt-1">
+                {!isGeneratorValidReal && !isGeneratorValidMod ? (
+                  "Point G is not on either curve"
+                ) : !isGeneratorValidReal ? (
+                  "Point G is not on the real curve"
+                ) : (
+                  "Point G is not on the modular curve"
+                )}
+              </p>
             )}
           </div>
         </div>
